@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>JARVIS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --teal:#1a6b6b;
+  --teal2:#0d4a4a;
+  --teal3:#0a3535;
+  --glow:#00e5cc;
+  --glow2:rgba(0,229,204,0.3);
+  --glow3:rgba(0,229,204,0.08);
+  --bg:#060f0f;
+  --bg2:#0a1818;
+  --orange:#c8781a;
+  --text:#b0d8d8;
+  --dim:#3a7070;
+  --white:#e8f8f8;
+  --panel:rgba(10,30,30,0.85);
+}
+
+body{
+  background: radial-gradient(ellipse at 50% 30%, #0d2525 0%, #060f0f 70%);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  font-family:'Rajdhani',sans-serif;
+  overflow-x:hidden;
+}
+
+.app{
+  width:100%;
+  max-width:420px;
+  min-height:100vh;
+  background: linear-gradient(180deg, #0a1c1c 0%, #060f0f 100%);
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* scan line */
+.app::after{
+  content:'';
+  position:fixed;
+  top:-5%;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--glow),transparent);
+  animation:scan 10s linear infinite;
+  opacity:0.15;pointer-events:none;z-index:100;
+}
+@keyframes scan{to{top:105%;}}
+
+/* ── HEADER ── */
+.header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 16px 8px;
+  position:relative;z-index:10;
+}
+.listening-status{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:2px;
+  color:var(--dim);
+}
+.listening-status.on{ color:var(--glow); }
+.header-title{
+  font-family:'Orbitron',monospace;
+  font-size:13px;font-weight:700;letter-spacing:4px;
+  color:var(--text);
+  text-shadow:0 0 10px var(--glow2);
+}
+.info-btn{
+  width:24px;height:24px;border-radius:50%;
+  border:1px solid var(--dim);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dim);font-size:11px;cursor:pointer;
+  font-style:italic;font-family:serif;
+  transition:all .2s;
+}
+.info-btn:hover{border-color:var(--glow);color:var(--glow);}
+
+/* ── CLOCK RING ── */
+.clock-section{
+  display:flex;justify-content:center;
+  padding:10px 0 20px;
+  position:relative;
+}
+.clock-wrap{
+  position:relative;
+  width:300px;height:300px;
+}
+
+.ring-svg{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+}
+
+/* Iron Man face bg */
+.ironman-bg{
+  position:absolute;
+  inset:12%;
+  border-radius:50%;
+  background: radial-gradient(ellipse at 50% 40%, rgba(0,30,40,0.7) 0%, rgba(5,12,12,0.95) 70%);
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+@keyframes holoFlicker{
+  0%,100%{opacity:0.85;}
+  93%{opacity:0.4;}
+  94%{opacity:0.85;}
+  97%{opacity:0.6;}
+  98%{opacity:0.85;}
+}
+
+/* Clock display */
+.clock-display{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  z-index:5;
+}
+.clock-time{
+  font-family:'Orbitron',monospace;
+  font-size:52px;font-weight:700;
+  color:var(--white);
+  letter-spacing:2px;
+  line-height:1;
+  text-shadow:0 0 30px rgba(0,229,204,0.4);
+}
+.clock-ampm{
+  font-family:'Orbitron',monospace;
+  font-size:16px;font-weight:400;
+  color:var(--text);
+  letter-spacing:2px;
+  vertical-align:super;
+  margin-left:2px;
+}
+.clock-sec{
+  font-family:'Share Tech Mono',monospace;
+  font-size:18px;color:var(--text);
+  margin-top:2px;letter-spacing:4px;
+}
+
+/* Triangle pointer */
+.pointer{
+  position:absolute;
+  top:2%;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:8px solid transparent;
+  border-right:8px solid transparent;
+  border-top:14px solid var(--glow);
+  filter:drop-shadow(0 0 6px var(--glow));
+  z-index:10;
+}
+.pointer-inner{
+  position:absolute;
+  top:3%;left:50%;transform:translateX(-50%);
+  width:16px;height:16px;
+  border:1px solid var(--glow);
+  border-radius:50%;
+  background:var(--bg);
+  z-index:11;
+}
+
+/* ── BOTTOM WIDGETS ── */
+.widgets{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding:0 12px;
+  margin-top:4px;
+}
+.widget{
+  background: rgba(8,25,25,0.9);
+  border:1px solid rgba(0,229,204,0.2);
+  padding:10px 12px;
+  position:relative;
+  overflow:hidden;
+}
+.widget::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--glow),transparent);
+  opacity:0.4;
+}
+.widget-label{
+  font-size:9px;letter-spacing:2px;
+  color:var(--dim);
+  font-family:'Share Tech Mono',monospace;
+  margin-bottom:4px;
+  display:flex;justify-content:space-between;
+}
+.widget-label span{color:rgba(0,229,204,0.5);}
+
+/* Weather widget */
+.weather-temp{
+  font-family:'Orbitron',monospace;
+  font-size:36px;font-weight:700;
+  color:var(--white);
+  line-height:1;
+}
+.weather-unit{font-size:16px;color:var(--text);}
+.weather-forecast{
+  display:flex;flex-direction:column;gap:1px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;color:var(--dim);
+  position:absolute;right:10px;top:28px;
+  text-align:right;
+}
+.weather-city{
+  font-size:9px;letter-spacing:1px;
+  color:var(--teal);
+  font-family:'Share Tech Mono',monospace;
+  margin-bottom:2px;
+}
+
+/* Date widget */
+.date-month{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;letter-spacing:3px;
+  color:var(--teal);
+  margin-bottom:2px;
+}
+.date-day{
+  font-family:'Orbitron',monospace;
+  font-size:36px;font-weight:700;
+  color:var(--white);
+  line-height:1;
+}
+.date-year{
+  font-family:'Share Tech Mono',monospace;
+  font-size:11px;color:var(--dim);
+  letter-spacing:2px;
+  position:absolute;right:10px;bottom:10px;
+}
+
+/* ── CHAT AREA ── */
+.chat-area{
+  flex:1;
+  padding:10px 12px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:6px;
+  min-height:80px;max-height:160px;
+  scrollbar-width:thin;scrollbar-color:var(--teal2) transparent;
+}
+.msg-j{
+  font-size:12px;color:var(--text);line-height:1.5;
+  padding-left:8px;border-left:2px solid var(--glow);
+  font-family:'Share Tech Mono',monospace;
+  animation:fadeIn .3s ease;
+}
+.msg-u{
+  font-size:12px;color:var(--glow);line-height:1.5;
+  text-align:right;padding-right:8px;
+  border-right:2px solid rgba(0,229,204,0.4);
+  font-family:'Share Tech Mono',monospace;
+  animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}}
+.typing{
+  display:none;gap:4px;padding-left:10px;align-items:center;
+}
+.typing.show{display:flex;}
+.td{width:5px;height:5px;border-radius:50%;background:var(--glow);
+  animation:td 1.2s infinite;}
+.td:nth-child(2){animation-delay:.2s;}
+.td:nth-child(3){animation-delay:.4s;}
+@keyframes td{0%,60%,100%{opacity:.3;transform:scale(1);}30%{opacity:1;transform:scale(1.4);}}
+
+/* ── BOTTOM BAR ── */
+.bottom-bar{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  gap:8px;
+  padding:8px 12px;
+  border-top:1px solid rgba(0,229,204,0.1);
+  align-items:center;
+}
+.bottom-btn{
+  background:rgba(8,28,28,0.9);
+  border:1px solid rgba(0,229,204,0.2);
+  color:var(--dim);
+  padding:8px 10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:9px;letter-spacing:1px;
+  cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  transition:all .2s;
+  justify-content:center;
+}
+.bottom-btn:hover{border-color:var(--glow);color:var(--glow);}
+.bottom-btn svg{width:12px;height:12px;}
+
+/* ── ICON BAR ── */
+.icon-bar{
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 20px 16px;
+  border-top:1px solid rgba(0,229,204,0.08);
+}
+.icon-btn{
+  width:44px;height:44px;border-radius:50%;
+  border:1px solid rgba(0,229,204,0.2);
+  background:rgba(8,25,25,0.8);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:all .2s;
+  color:var(--dim);
+}
+.icon-btn:hover{
+  border-color:var(--glow);
+  color:var(--glow);
+  box-shadow:0 0 12px var(--glow2);
+}
+.icon-btn.mic{
+  width:54px;height:54px;
+  border:2px solid rgba(0,229,204,0.4);
+  background:rgba(0,229,204,0.05);
+}
+.icon-btn.mic.recording{
+  border-color:var(--glow);
+  background:rgba(0,229,204,0.15);
+  box-shadow:0 0 20px var(--glow2);
+  animation:micPulse 1s ease-in-out infinite;
+}
+@keyframes micPulse{
+  0%,100%{box-shadow:0 0 20px var(--glow2);}
+  50%{box-shadow:0 0 35px var(--glow),0 0 50px var(--glow2);}
+}
+
+/* INPUT */
+.input-row{
+  display:flex;gap:6px;padding:6px 12px 0;
+}
+.chat-input{
+  flex:1;background:transparent;
+  border:none;border-bottom:1px solid rgba(0,229,204,0.2);
+  color:var(--text);font-family:'Share Tech Mono',monospace;
+  font-size:12px;padding:6px 4px;outline:none;
+  letter-spacing:1px;
+}
+.chat-input:focus{border-bottom-color:var(--glow);}
+.chat-input::placeholder{color:var(--dim);}
+.send-btn{
+  background:transparent;
+  border:1px solid rgba(0,229,204,0.2);
+  color:var(--dim);padding:4px 10px;
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;cursor:pointer;
+  transition:all .2s;
+}
+.send-btn:hover{border-color:var(--glow);color:var(--glow);}
+
+/* brightness */
+.brightness-pill{
+  display:flex;align-items:center;gap:5px;
+  font-size:9px;font-family:'Share Tech Mono',monospace;
+  color:var(--dim);
+}
+.brightness-pill svg{width:12px;height:12px;color:var(--glow);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="listening-status" id="listenStatus">LISTENING OFF</div>
+    <div class="header-title">JARVIS</div>
+    <div class="info-btn">i</div>
+  </div>
+
+  <!-- CLOCK RING -->
+  <div class="clock-section">
+    <div class="clock-wrap">
+
+      <!-- SVG RINGS -->
+      <svg class="ring-svg" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- outer ring -->
+        <circle cx="150" cy="150" r="145" stroke="rgba(0,229,204,0.12)" stroke-width="1"/>
+        <!-- tick ring -->
+        <circle cx="150" cy="150" r="138" stroke="none"/>
+        <!-- tick marks -->
+        <g id="ticks"></g>
+        <!-- orange/teal progress arc -->
+        <circle cx="150" cy="150" r="130" stroke="rgba(0,229,204,0.08)" stroke-width="8"/>
+        <circle cx="150" cy="150" r="130"
+          stroke="url(#arcGrad)" stroke-width="8"
+          stroke-dasharray="816" stroke-dashoffset="600"
+          stroke-linecap="round"
+          transform="rotate(-90 150 150)"
+          id="progressArc"/>
+        <!-- inner rings -->
+        <circle cx="150" cy="150" r="118" stroke="rgba(0,229,204,0.15)" stroke-width="1"/>
+        <!-- segmented inner ring -->
+        <circle cx="150" cy="150" r="108" stroke="rgba(0,229,204,0.06)" stroke-width="12"
+          stroke-dasharray="4 3"
+          transform="rotate(-90 150 150)"/>
+        <circle cx="150" cy="150" r="95" stroke="rgba(0,229,204,0.12)" stroke-width="1"/>
+        <!-- center glow ring -->
+        <circle cx="150" cy="150" r="82" stroke="rgba(0,229,204,0.08)" stroke-width="1"/>
+
+        <defs>
+          <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#c8781a"/>
+            <stop offset="60%" stop-color="#1a9090"/>
+            <stop offset="100%" stop-color="#00e5cc"/>
+          </linearGradient>
+        </defs>
+      </svg>
+
+      <!-- Iron Man Helmet Hologram -->
+      <div class="ironman-bg">
+        <svg viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg"
+          style="width:92%;height:92%;animation:holoFlicker 5s ease-in-out infinite;">
+          <defs>
+            <filter id="hglow">
+              <feGaussianBlur stdDeviation="2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="eyeglow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <g filter="url(#hglow)">
+            <!-- HELMET OUTER SHELL -->
+            <path d="M60 70 L60 30 Q60 10 100 8 Q140 10 140 30 L140 70 L130 100 L100 112 L70 100 Z"
+              stroke="#00e5cc" stroke-width="1.5" fill="rgba(0,40,50,0.3)"/>
+            <!-- top center ridge -->
+            <line x1="100" y1="8" x2="100" y2="40" stroke="rgba(0,229,204,0.4)" stroke-width="1"/>
+            <!-- FACEPLATE top section -->
+            <path d="M68 55 L68 38 Q68 28 100 26 Q132 28 132 38 L132 55 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,30,40,0.4)"/>
+            <!-- brow ridge -->
+            <path d="M68 55 L80 50 L92 53 L100 51 L108 53 L120 50 L132 55"
+              stroke="#00e5cc" stroke-width="1.2" fill="none"/>
+            <!-- LEFT EYE -->
+            <path d="M72 60 L72 57 L90 55 L93 60 L90 65 L72 63 Z"
+              fill="rgba(100,255,240,0.15)" stroke="#00e5cc" stroke-width="0.8"/>
+            <path d="M73 58 L89 56 L92 60 L89 64 L73 62 Z"
+              fill="#7af9f0" opacity="0.9"/>
+            <!-- RIGHT EYE -->
+            <path d="M128 60 L128 57 L110 55 L107 60 L110 65 L128 63 Z"
+              fill="rgba(100,255,240,0.15)" stroke="#00e5cc" stroke-width="0.8"/>
+            <path d="M127 58 L111 56 L108 60 L111 64 L127 62 Z"
+              fill="#7af9f0" opacity="0.9"/>
+            <!-- eye inner glow lines -->
+            <line x1="76" y1="59" x2="88" y2="59" stroke="white" stroke-width="0.5" opacity="0.6"/>
+            <line x1="112" y1="59" x2="124" y2="59" stroke="white" stroke-width="0.5" opacity="0.6"/>
+            <!-- NOSE BRIDGE -->
+            <path d="M95 65 L95 75 L100 77 L105 75 L105 65"
+              stroke="rgba(0,229,204,0.5)" stroke-width="0.8" fill="none"/>
+            <!-- CHEEK PLATES -->
+            <path d="M68 63 L60 70 L62 85 L72 82 L74 68 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,30,40,0.3)"/>
+            <path d="M132 63 L140 70 L138 85 L128 82 L126 68 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,30,40,0.3)"/>
+            <!-- cheek detail lines -->
+            <line x1="62" y1="72" x2="71" y2="70" stroke="rgba(0,229,204,0.35)" stroke-width="0.6"/>
+            <line x1="62" y1="78" x2="71" y2="76" stroke="rgba(0,229,204,0.35)" stroke-width="0.6"/>
+            <line x1="138" y1="72" x2="129" y2="70" stroke="rgba(0,229,204,0.35)" stroke-width="0.6"/>
+            <line x1="138" y1="78" x2="129" y2="76" stroke="rgba(0,229,204,0.35)" stroke-width="0.6"/>
+            <!-- FACEPLATE LOWER -->
+            <path d="M72 82 L74 100 L100 108 L126 100 L128 82 L100 86 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,25,35,0.4)"/>
+            <!-- mouth grille -->
+            <path d="M82 90 L82 86 L118 86 L118 90 Z" stroke="rgba(0,229,204,0.4)" stroke-width="0.6" fill="rgba(0,20,30,0.5)"/>
+            <line x1="86" y1="86" x2="86" y2="90" stroke="rgba(0,229,204,0.3)" stroke-width="0.5"/>
+            <line x1="92" y1="86" x2="92" y2="90" stroke="rgba(0,229,204,0.3)" stroke-width="0.5"/>
+            <line x1="100" y1="86" x2="100" y2="90" stroke="rgba(0,229,204,0.3)" stroke-width="0.5"/>
+            <line x1="108" y1="86" x2="108" y2="90" stroke="rgba(0,229,204,0.3)" stroke-width="0.5"/>
+            <line x1="114" y1="86" x2="114" y2="90" stroke="rgba(0,229,204,0.3)" stroke-width="0.5"/>
+            <!-- chin plate -->
+            <path d="M82 94 L82 100 Q100 108 118 100 L118 94 Z"
+              stroke="#00e5cc" stroke-width="0.8" fill="rgba(0,20,30,0.3)"/>
+            <!-- NECK -->
+            <path d="M82 108 L80 128 L100 134 L120 128 L118 108 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,20,30,0.3)"/>
+            <!-- neck segments -->
+            <line x1="80" y1="114" x2="120" y2="114" stroke="rgba(0,229,204,0.3)" stroke-width="0.6"/>
+            <line x1="80" y1="120" x2="120" y2="120" stroke="rgba(0,229,204,0.3)" stroke-width="0.6"/>
+            <line x1="80" y1="126" x2="120" y2="126" stroke="rgba(0,229,204,0.3)" stroke-width="0.6"/>
+            <!-- RED neck/collar joints -->
+            <circle cx="82" cy="128" r="5" stroke="#cc2222" stroke-width="1.2" fill="rgba(120,0,0,0.3)"/>
+            <circle cx="118" cy="128" r="5" stroke="#cc2222" stroke-width="1.2" fill="rgba(120,0,0,0.3)"/>
+            <circle cx="100" cy="132" r="4" stroke="#cc2222" stroke-width="1" fill="rgba(120,0,0,0.2)"/>
+            <!-- red connector lines -->
+            <line x1="82" y1="128" x2="100" y2="132" stroke="#cc2222" stroke-width="1"/>
+            <line x1="118" y1="128" x2="100" y2="132" stroke="#cc2222" stroke-width="1"/>
+            <!-- SHOULDER TOPS -->
+            <path d="M60 110 L40 118 L42 135 L65 130 L68 115 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,25,35,0.3)"/>
+            <path d="M140 110 L160 118 L158 135 L135 130 L132 115 Z"
+              stroke="#00e5cc" stroke-width="1" fill="rgba(0,25,35,0.3)"/>
+            <!-- scan lines -->
+            <line x1="40" y1="145" x2="160" y2="145" stroke="rgba(0,229,204,0.05)" stroke-width="8"/>
+            <line x1="40" y1="130" x2="160" y2="130" stroke="rgba(0,229,204,0.04)" stroke-width="4"/>
+          </g>
+          <!-- Eye glow overlay -->
+          <g filter="url(#eyeglow)" opacity="0.6">
+            <rect x="73" y="57" width="19" height="7" rx="1" fill="#00ffee"/>
+            <rect x="108" y="57" width="19" height="7" rx="1" fill="#00ffee"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Pointer triangle -->
+      <div class="pointer-inner"></div>
+      <div class="pointer"></div>
+
+      <!-- Clock display -->
+      <div class="clock-display">
+        <div>
+          <span class="clock-time" id="clockTime">12:00</span><span class="clock-ampm" id="clockAmPm">AM</span>
+        </div>
+        <div class="clock-sec" id="clockSec">:00</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- WIDGETS -->
+  <div class="widgets">
+    <!-- Weather -->
+    <div class="widget">
+      <div class="weather-city" id="wCity">SINGAPORE</div>
+      <div class="widget-label">TEMPERATURE <span id="wCond">--</span></div>
+      <div style="position:relative;">
+        <span class="weather-temp" id="wTemp">--</span><span class="weather-unit">°C</span>
+        <div class="weather-forecast" id="wForecast">
+          <span id="wH">--°</span>
+          <span id="wL">--°</span>
+          <span id="wHum">--%</span>
+        </div>
+      </div>
+    </div>
+    <!-- Date -->
+    <div class="widget">
+      <div class="date-month" id="dateMonth">JANUARY</div>
+      <div class="widget-label">DATE</div>
+      <div class="date-day" id="dateDay">01</div>
+      <div class="date-year" id="dateYear">2026</div>
+    </div>
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area" id="chatArea">
+    <div class="msg-j">Good day. J.A.R.V.I.S online. All systems operational.</div>
+  </div>
+  <div class="typing" id="typingInd">
+    <div class="td"></div><div class="td"></div><div class="td"></div>
+  </div>
+  <div class="input-row">
+    <input class="chat-input" id="userInput" placeholder="ENTER QUERY..." autocomplete="off"
+      onkeydown="if(event.key==='Enter')send()"/>
+    <button class="send-btn" onclick="send()">SEND</button>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar" style="margin-top:8px;">
+    <button class="bottom-btn" onclick="document.getElementById('userInput').value='Run system diagnostic';send()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      ALARM SETTINGS
+    </button>
+    <div></div>
+    <div class="brightness-pill">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      100%
+    </div>
+  </div>
+
+  <!-- ICON BAR -->
+  <div class="icon-bar">
+    <!-- Arc reactor -->
+    <div class="icon-btn" onclick="document.getElementById('userInput').value='Status report';send()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="5"/>
+        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+      </svg>
+    </div>
+    <!-- Share -->
+    <div class="icon-btn" onclick="document.getElementById('userInput').value='Latest news briefing';send()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+      </svg>
+    </div>
+    <!-- MIC -->
+    <div class="icon-btn mic" id="micBtn" onclick="toggleVoice()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </div>
+    <!-- Search -->
+    <div class="icon-btn" onclick="document.getElementById('userInput').value='Weather forecast today';send()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    </div>
+    <!-- Iron Man mask -->
+    <div class="icon-btn" onclick="document.getElementById('userInput').value='Activate Iron Man protocol';send()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.5C16.5 22.15 20 17.25 20 12V6L12 2z"/>
+        <path d="M9 10l-2 2 5 5 8-8-2-2-6 6-3-3z"/>
+      </svg>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CLOCK ──
+function updateClock(){
+  const n = new Date();
+  let h = n.getHours();
+  const m = String(n.getMinutes()).padStart(2,'0');
+  const s = String(n.getSeconds()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  document.getElementById('clockTime').textContent = h + ':' + m;
+  document.getElementById('clockAmPm').textContent = ampm;
+  document.getElementById('clockSec').textContent = ':' + s;
+
+  // progress arc based on minutes
+  const prog = (n.getMinutes() * 60 + n.getSeconds()) / 3600;
+  const circ = 2 * Math.PI * 130;
+  const offset = circ - prog * circ;
+  document.getElementById('progressArc').setAttribute('stroke-dashoffset', offset);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── DATE ──
+function updateDate(){
+  const n = new Date();
+  const months = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+  document.getElementById('dateMonth').textContent = months[n.getMonth()];
+  document.getElementById('dateDay').textContent = String(n.getDate()).padStart(2,'0');
+  document.getElementById('dateYear').textContent = n.getFullYear();
+}
+updateDate();
+
+// ── WEATHER ──
+async function loadWeather(){
+  try{
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=1.35&longitude=103.82&current=temperature_2m,relative_humidity_2m,apparent_temperature,weathercode&daily=temperature_2m_max,temperature_2m_min&timezone=Asia/Singapore');
+    const d = await r.json();
+    const c = d.current;
+    document.getElementById('wTemp').textContent = Math.round(c.temperature_2m);
+    document.getElementById('wHum').textContent = c.relative_humidity_2m + '%';
+    document.getElementById('wH').textContent = Math.round(d.daily.temperature_2m_max[0]) + '°';
+    document.getElementById('wL').textContent = Math.round(d.daily.temperature_2m_min[0]) + '°';
+    const codes = {0:'CLEAR',1:'CLEAR',2:'CLOUDY',3:'OVERCAST',45:'FOG',61:'RAIN',80:'SHOWERS',95:'STORM'};
+    document.getElementById('wCond').textContent = codes[c.weathercode] || 'NOMINAL';
+  }catch(e){}
+}
+loadWeather();
+
+// ── CHAT ──
+let history = [];
+let isRec = false;
+let recog = null;
+
+function addMsg(role, text){
+  const a = document.getElementById('chatArea');
+  const d = document.createElement('div');
+  d.className = role === 'j' ? 'msg-j' : 'msg-u';
+  d.textContent = text;
+  a.appendChild(d);
+  a.scrollTop = a.scrollHeight;
+}
+
+function showTyping(v){
+  document.getElementById('typingInd').className = 'typing' + (v?' show':'');
+}
+
+async function send(){
+  const inp = document.getElementById('userInput');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  inp.value = '';
+  addMsg('u', txt);
+  showTyping(true);
+  history.push({role:'user', content:txt});
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-5',
+        max_tokens:200,
+        system:`You are J.A.R.V.I.S, Tony Stark's AI. Calm, British, intelligent. Address user as 'sir' occasionally. Under 60 words. No asterisks.`,
+        messages:history
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Systems interference, sir.';
+    history.push({role:'assistant', content:reply});
+    showTyping(false);
+    addMsg('j', reply);
+  }catch(e){
+    showTyping(false);
+    addMsg('j','Communications offline, sir.');
+  }
+}
+
+// ── VOICE ──
+function toggleVoice(){
+  if(isRec){stopRec();return;}
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){addMsg('j','Voice unavailable in this browser, sir.');return;}
+  recog = new SR();
+  recog.lang = 'en-US';
+  recog.onresult = e => {
+    document.getElementById('userInput').value = e.results[0][0].transcript;
+    stopRec(); send();
+  };
+  recog.onerror = recog.onend = stopRec;
+  isRec = true;
+  document.getElementById('micBtn').classList.add('recording');
+  document.getElementById('listenStatus').textContent = 'LISTENING ON';
+  document.getElementById('listenStatus').classList.add('on');
+  recog.start();
+}
+function stopRec(){
+  isRec = false;
+  document.getElementById('micBtn').classList.remove('recording');
+  document.getElementById('listenStatus').textContent = 'LISTENING OFF';
+  document.getElementById('listenStatus').classList.remove('on');
+  try{recog&&recog.stop();}catch(e){}
+}
+</script>
+</body>
+</html>
